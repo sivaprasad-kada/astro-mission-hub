@@ -1,16 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { AreaChart, Area, ResponsiveContainer } from 'recharts';
+
 import GlowButton from '../components/shared/GlowButton';
-import GlassCard from '../components/shared/GlassCard';
 
 // ─── DATA ───
 const categories = [
-  { key: 'launch', icon: '🚀', label: 'Launch', color: 'var(--accent-blue)' },
-  { key: 'control', icon: '🛰️', label: 'Control', color: 'var(--accent-orange)' },
-  { key: 'satellites', icon: '🌍', label: 'Satellites', color: 'var(--accent-purple)' },
-  { key: 'prelaunch', icon: '🔬', label: 'Pre-Launch', color: 'var(--accent-green)' },
+  { key: 'launch', icon: '🚀', label: 'Launch', color: '#00d4ff' },
+  { key: 'control', icon: '🛰️', label: 'Control', color: '#ff6b35' },
+  { key: 'satellites', icon: '🌍', label: 'Satellites', color: '#7b2fff' },
+  { key: 'prelaunch', icon: '🔬', label: 'Pre-Launch', color: '#00ff88' },
 ];
 
 const questionsMap: Record<string, string[]> = {
@@ -69,6 +68,13 @@ interface Message {
   dislikes: number;
 }
 
+// ─── FONTS ───
+const font = {
+  heading: "'Outfit', 'Inter', sans-serif",
+  body: "'Inter', 'Segoe UI', sans-serif",
+  mono: "'JetBrains Mono', 'Fira Code', monospace",
+};
+
 const ChatPage = () => {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState('launch');
@@ -76,7 +82,6 @@ const ChatPage = () => {
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const [queryCount, setQueryCount] = useState(0);
-  const [chartData, setChartData] = useState([{ v: 1.2 }, { v: 1.5 }, { v: 0.9 }, { v: 1.8 }, { v: 1.1 }, { v: 2.0 }, { v: 1.3 }, { v: 1.6 }]);
   const [metSeconds, setMetSeconds] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -114,7 +119,6 @@ const ChatPage = () => {
       const confidence = 88 + Math.floor(Math.random() * 9);
       setMessages(prev => [...prev, { id: botId, text: resp.text, isBot: true, source: resp.source, confidence, time: formatMET(metSeconds), likes: 0, dislikes: 0 }]);
       setTyping(false);
-      setChartData(prev => [...prev.slice(-7), { v: 0.8 + Math.random() * 1.7 }]);
     }, delay);
   };
 
@@ -133,272 +137,318 @@ const ChatPage = () => {
     navigator.clipboard.writeText(text);
   };
 
-  const lastTopic = messages.filter(m => !m.isBot).slice(-1)[0]?.text || '';
-
-  const font = { heading: "'Orbitron', sans-serif", body: "'Rajdhani', sans-serif", mono: "'Share Tech Mono', monospace" };
-  const labelStyle: React.CSSProperties = { fontFamily: font.mono, fontSize: 9, color: 'var(--text-dim)', letterSpacing: 3, marginBottom: 12, padding: '0 16px' };
-
-  const documents = ['chandrayaan_3_mission.pdf', 'gaganyaan_overview.pdf', 'isro_launch_vehicle.pdf', 'nasa_mission_ops.pdf', 'satellite_deployment.pdf'];
+  // ─── STYLES ───
+  const sidebarLabelStyle: React.CSSProperties = {
+    fontFamily: font.mono,
+    fontSize: 11,
+    fontWeight: 600,
+    color: '#7a9ab8',
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
+    marginBottom: 14,
+    padding: '0 20px',
+  };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}
-      style={{ height: '100vh', display: 'grid', gridTemplateRows: '62px 1fr', gridTemplateColumns: '290px 1fr 260px', position: 'relative', zIndex: 2 }}
-    >
-      {/* HEADER */}
-      <header style={{
-        gridColumn: '1 / -1', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 24px', background: 'rgba(2,2,18,0.97)', backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(0,212,255,0.15)', zIndex: 10,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => navigate('/')} style={{ color: 'var(--accent-blue)', fontSize: 18 }}>←</button>
-          <span style={{ fontFamily: font.heading, fontSize: 16, color: 'var(--accent-blue)' }}>🚀 ASTRO</span>
-        </div>
-        <span style={{ fontFamily: font.mono, fontSize: 10, color: 'var(--text-dim)', letterSpacing: 3 }}>SPACE MISSION EDUCATION SYSTEM</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-green)', boxShadow: '0 0 8px var(--accent-green)' }} />
-            <span style={{ fontFamily: font.mono, fontSize: 10, color: 'var(--accent-green)' }}>ONLINE</span>
+    <>
+      {/* Google Fonts */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}
+        style={{ height: '100vh', display: 'grid', gridTemplateRows: '64px 1fr', gridTemplateColumns: '300px 1fr', position: 'relative', zIndex: 2 }}
+      >
+        {/* ── HEADER ── */}
+        <header style={{
+          gridColumn: '1 / -1', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 28px',
+          background: 'linear-gradient(180deg, rgba(8,10,30,0.98) 0%, rgba(4,6,20,0.97) 100%)',
+          backdropFilter: 'blur(16px)',
+          borderBottom: '1px solid rgba(0,212,255,0.18)', zIndex: 10,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <button onClick={() => navigate('/')}
+              style={{
+                color: '#00d4ff', fontSize: 20, width: 36, height: 36, borderRadius: 8,
+                background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={e => { (e.currentTarget).style.background = 'rgba(0,212,255,0.15)'; }}
+              onMouseLeave={e => { (e.currentTarget).style.background = 'rgba(0,212,255,0.08)'; }}
+            >←</button>
+            <span style={{ fontFamily: font.heading, fontSize: 20, fontWeight: 700, color: '#ffffff', letterSpacing: 1 }}>
+              🚀 <span style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #7b2fff 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>ASTRO</span>
+            </span>
           </div>
-          <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)' }} />
-          <span style={{ fontFamily: font.mono, fontSize: 12, color: 'var(--accent-blue)' }}>MET {formatMET(metSeconds)}</span>
-        </div>
-      </header>
-
-      {/* LEFT SIDEBAR */}
-      <aside style={{ background: 'rgba(3,3,20,0.92)', borderRight: '1px solid rgba(0,212,255,0.15)', overflowY: 'auto', padding: '20px 0' }}>
-        <div style={labelStyle}>MISSION CATEGORIES</div>
-        <div style={{ padding: '0 12px', marginBottom: 24 }}>
-          {categories.map(c => (
-            <button key={c.key} onClick={() => setActiveCategory(c.key)}
-              style={{
-                width: '100%', textAlign: 'left', padding: '10px 14px', marginBottom: 4,
-                fontFamily: font.body, fontSize: 14, color: activeCategory === c.key ? 'var(--text-primary)' : 'var(--text-secondary)',
-                background: activeCategory === c.key ? 'rgba(0,212,255,0.08)' : 'transparent',
-                borderLeft: `3px solid ${activeCategory === c.key ? c.color : 'transparent'}`,
-                borderRadius: '0 6px 6px 0', transition: 'all 0.2s',
-              }}
-            >
-              {c.icon} {c.label}
-            </button>
-          ))}
-        </div>
-
-        <div style={labelStyle}>QUICK QUESTIONS</div>
-        <div style={{ padding: '0 12px', marginBottom: 24 }}>
-          {questionsMap[activeCategory]?.map((q, i) => (
-            <button key={i} onClick={() => sendMessage(q)}
-              style={{
-                width: '100%', textAlign: 'left', padding: '8px 12px', marginBottom: 2,
-                fontFamily: font.body, fontSize: 13, color: 'var(--text-secondary)',
-                background: 'transparent', borderLeft: '2px solid transparent',
-                borderRadius: '0 4px 4px 0', transition: 'all 0.15s',
-              }}
-              onMouseEnter={e => { (e.target as HTMLElement).style.background = 'rgba(0,212,255,0.05)'; (e.target as HTMLElement).style.borderLeftColor = 'var(--accent-blue)'; }}
-              onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; (e.target as HTMLElement).style.borderLeftColor = 'transparent'; }}
-            >
-              {q}
-            </button>
-          ))}
-        </div>
-
-        <div style={labelStyle}>ISRO MISSIONS</div>
-        <div style={{ padding: '0 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {[['🌕', 'Chandrayaan-3'], ['🔴', 'Mangalyaan'], ['🚀', 'Gaganyaan']].map(([icon, name]) => (
-            <button key={name} onClick={() => sendMessage(`Tell me about ${name}`)}
-              style={{ padding: '6px 12px', fontFamily: font.mono, fontSize: 11, color: 'var(--text-secondary)', background: 'rgba(0,212,255,0.04)', border: '1px solid rgba(0,212,255,0.1)', borderRadius: 14, textAlign: 'left' }}
-            >
-              {icon} {name}
-            </button>
-          ))}
-        </div>
-      </aside>
-
-      {/* MAIN CHAT */}
-      <main style={{ display: 'flex', flexDirection: 'column', background: 'rgba(1,1,15,0.8)', overflow: 'hidden' }}>
-        {/* Stats bar */}
-        <div style={{ height: 40, display: 'flex', alignItems: 'center', gap: 24, padding: '0 20px', borderBottom: '1px solid rgba(0,212,255,0.08)', fontFamily: font.mono, fontSize: 11, color: 'var(--text-dim)', flexShrink: 0 }}>
-          <span>📄 Docs: 5</span>
-          <span style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.08)' }} />
-          <span>🔍 Queries: {queryCount}</span>
-          <span style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.08)' }} />
-          <span>⚡ Avg: 1.2s</span>
-          <span style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.08)' }} />
-          <span>✅ Verified: 100%</span>
-        </div>
-
-        {/* Messages */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-          {messages.length === 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 16 }}>
-              <div style={{ fontSize: 60 }}>🚀</div>
-              <h3 style={{ fontFamily: font.heading, fontSize: 20, color: 'var(--text-primary)' }}>Ask ASTRO anything about space missions</h3>
-              <p style={{ fontFamily: font.body, fontSize: 15, color: 'var(--text-secondary)' }}>Powered by official ISRO & NASA documents</p>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 }}>
-                {['Explain rocket launch sequence', 'What is Chandrayaan-3?', 'How do satellites work?', 'What is escape velocity?'].map((q, i) => (
-                  <button key={i} onClick={() => sendMessage(q)}
-                    style={{ fontFamily: font.body, fontSize: 13, padding: '8px 16px', background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)', borderRadius: 20, color: 'var(--text-secondary)', transition: 'all 0.2s' }}
-                    onMouseEnter={e => (e.target as HTMLElement).style.borderColor = 'var(--accent-blue)'}
-                    onMouseLeave={e => (e.target as HTMLElement).style.borderColor = 'rgba(0,212,255,0.15)'}
-                  >{q}</button>
-                ))}
-              </div>
+          <span style={{ fontFamily: font.mono, fontSize: 12, fontWeight: 500, color: '#7a9ab8', letterSpacing: 3 }}>SPACE MISSION EDUCATION</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(0,255,136,0.06)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(0,255,136,0.15)' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 10px #00ff88' }} />
+              <span style={{ fontFamily: font.mono, fontSize: 12, fontWeight: 500, color: '#00ff88' }}>ONLINE</span>
             </div>
-          )}
+            <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.08)' }} />
+            <div style={{ background: 'rgba(0,212,255,0.06)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(0,212,255,0.12)' }}>
+              <span style={{ fontFamily: font.mono, fontSize: 13, fontWeight: 600, color: '#00d4ff' }}>MET {formatMET(metSeconds)}</span>
+            </div>
+          </div>
+        </header>
 
-          <AnimatePresence>
-            {messages.map(msg => (
-              <motion.div key={msg.id} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.3 }}
-                style={{ display: 'flex', justifyContent: msg.isBot ? 'flex-start' : 'flex-end', marginBottom: 20, gap: 10, alignItems: 'flex-start' }}
+        {/* ── LEFT SIDEBAR ── */}
+        <aside style={{
+          background: 'linear-gradient(180deg, rgba(6,8,25,0.96) 0%, rgba(3,5,18,0.98) 100%)',
+          borderRight: '1px solid rgba(0,212,255,0.12)',
+          overflowY: 'auto', padding: '24px 0',
+        }}>
+          <div style={sidebarLabelStyle}>Mission Categories</div>
+          <div style={{ padding: '0 14px', marginBottom: 28 }}>
+            {categories.map(c => (
+              <button key={c.key} onClick={() => setActiveCategory(c.key)}
+                style={{
+                  width: '100%', textAlign: 'left', padding: '12px 16px', marginBottom: 4,
+                  fontFamily: font.body, fontSize: 15, fontWeight: activeCategory === c.key ? 600 : 400,
+                  color: activeCategory === c.key ? '#ffffff' : '#b8d8f0',
+                  background: activeCategory === c.key ? 'rgba(0,212,255,0.1)' : 'transparent',
+                  borderLeft: `3px solid ${activeCategory === c.key ? c.color : 'transparent'}`,
+                  borderRadius: '0 8px 8px 0', transition: 'all 0.2s',
+                  letterSpacing: 0.3,
+                }}
+                onMouseEnter={e => { if (activeCategory !== c.key) { (e.currentTarget).style.background = 'rgba(0,212,255,0.05)'; (e.currentTarget).style.color = '#ffffff'; } }}
+                onMouseLeave={e => { if (activeCategory !== c.key) { (e.currentTarget).style.background = 'transparent'; (e.currentTarget).style.color = '#b8d8f0'; } }}
               >
-                {msg.isBot && <span style={{ fontSize: 24, marginTop: 4 }}>🚀</span>}
-                <div style={{ maxWidth: msg.isBot ? '75%' : '65%' }}>
-                  <div style={{
-                    background: msg.isBot ? 'rgba(5,10,35,0.9)' : 'rgba(0,212,255,0.12)',
-                    border: msg.isBot ? 'none' : '1px solid rgba(0,212,255,0.3)',
-                    borderLeft: msg.isBot ? '3px solid var(--accent-blue)' : undefined,
-                    borderRadius: msg.isBot ? '0 12px 12px 12px' : '16px 16px 4px 16px',
-                    padding: '14px 18px', fontFamily: font.body, fontSize: 15, lineHeight: 1.7,
-                    color: 'var(--text-secondary)', whiteSpace: 'pre-line',
-                  }}>
-                    {msg.text}
-                  </div>
-                  {msg.isBot && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
-                      {msg.source && (
-                        <span style={{ fontFamily: font.mono, fontSize: 11, color: 'var(--accent-blue)', background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: 12, padding: '3px 10px' }}>
-                          📄 {msg.source}
-                        </span>
-                      )}
-                      {msg.confidence && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontFamily: font.mono, fontSize: 9, color: 'var(--text-dim)' }}>Confidence</span>
-                          <div style={{ width: 60, height: 4, background: 'rgba(0,212,255,0.1)', borderRadius: 2, overflow: 'hidden' }}>
-                            <div style={{ width: `${msg.confidence}%`, height: '100%', background: 'var(--accent-blue)', borderRadius: 2 }} />
-                          </div>
-                          <span style={{ fontFamily: font.mono, fontSize: 9, color: 'var(--accent-blue)' }}>{msg.confidence}%</span>
-                        </div>
-                      )}
-                      <button onClick={() => copyText(msg.text)} style={{ fontFamily: font.mono, fontSize: 9, color: 'var(--text-dim)', padding: '2px 8px' }}>📋</button>
-                      <button onClick={() => handleReaction(msg.id, 'likes')} style={{ fontSize: 12 }}>👍 {msg.likes > 0 ? msg.likes : ''}</button>
-                      <button onClick={() => handleReaction(msg.id, 'dislikes')} style={{ fontSize: 12 }}>👎 {msg.dislikes > 0 ? msg.dislikes : ''}</button>
-                    </div>
-                  )}
-                  <div style={{ fontFamily: font.mono, fontSize: 10, color: 'var(--text-dim)', marginTop: 4 }}>MET {msg.time}</div>
-                </div>
-                {!msg.isBot && <span style={{ fontSize: 24, marginTop: 4 }}>🧑‍🚀</span>}
-              </motion.div>
+                <span style={{ marginRight: 10, fontSize: 18 }}>{c.icon}</span> {c.label}
+              </button>
             ))}
-          </AnimatePresence>
-
-          {typing && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-              <span style={{ fontSize: 24 }}>🚀</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 18px', background: 'rgba(5,10,35,0.9)', borderLeft: '3px solid var(--accent-blue)', borderRadius: '0 12px 12px 12px' }}>
-                {[0, 1, 2].map(i => (
-                  <div key={i} style={{
-                    width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-blue)',
-                    animation: `dot-bounce 1.2s ${i * 0.2}s infinite`,
-                  }} />
-                ))}
-                <span style={{ fontFamily: font.mono, fontSize: 11, color: 'var(--text-dim)', marginLeft: 8 }}>ASTRO retrieving mission data...</span>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input */}
-        <div style={{ padding: '12px 20px', background: 'rgba(2,2,18,0.97)', borderTop: '1px solid rgba(0,212,255,0.15)', display: 'flex', gap: 12, alignItems: 'flex-end', flexShrink: 0 }}>
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask ASTRO about space missions..."
-            rows={1}
-            style={{
-              flex: 1, background: 'rgba(5,10,40,0.8)', border: '1px solid rgba(0,212,255,0.2)',
-              borderRadius: 8, padding: '12px 16px', fontFamily: font.body, fontSize: 16,
-              color: 'var(--text-primary)', resize: 'none', outline: 'none', maxHeight: 80,
-            }}
-            onFocus={e => e.target.style.borderColor = 'var(--accent-blue)'}
-            onBlur={e => e.target.style.borderColor = 'rgba(0,212,255,0.2)'}
-          />
-          <GlowButton label="➤" color="blue" size="md" onClick={() => sendMessage(input)} />
-          {messages.length > 0 && (
-            <button onClick={() => { if (confirm('Clear all messages?')) setMessages([]); }}
-              style={{ padding: '10px', color: 'var(--text-dim)', fontSize: 16 }} title="Clear chat">🗑️</button>
-          )}
-        </div>
-      </main>
-
-      {/* RIGHT PANEL */}
-      <aside style={{ background: 'rgba(2,2,18,0.9)', borderLeft: '1px solid rgba(0,212,255,0.15)', overflowY: 'auto', padding: '20px 0' }}>
-        {/* ASTRO Status */}
-        <div style={labelStyle}>ASTRO STATUS</div>
-        <div style={{ padding: '0 12px', marginBottom: 20 }}>
-          <GlassCard style={{ padding: 16, textAlign: 'center' }}>
-            <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(0,212,255,0.1)', border: '1px solid var(--accent-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 8px', boxShadow: '0 0 20px rgba(0,212,255,0.2)' }}>🚀</div>
-            <div style={{ fontFamily: font.heading, fontSize: 14 }}>ASTRO</div>
-            <div style={{ fontFamily: font.body, fontSize: 12, color: 'var(--text-secondary)' }}>Space Education AI</div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8 }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-green)' }} />
-              <span style={{ fontFamily: font.mono, fontSize: 10, color: 'var(--accent-green)' }}>ONLINE</span>
-              <span style={{ fontFamily: font.mono, fontSize: 10, color: 'var(--text-dim)', marginLeft: 8 }}>v1.0.0</span>
-            </div>
-            <div style={{ marginTop: 12, textAlign: 'left' }}>
-              {[['Documents', '5'], ['Missions', '12'], ['Languages', 'English']].map(([k, v]) => (
-                <div key={k} style={{ fontFamily: font.mono, fontSize: 11, color: 'var(--text-secondary)', padding: '4px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent-blue)' }} />
-                  {k}: {v}
-                </div>
-              ))}
-            </div>
-          </GlassCard>
-        </div>
-
-        {/* Knowledge Base */}
-        <div style={labelStyle}>KNOWLEDGE BASE</div>
-        <div style={{ padding: '0 12px', marginBottom: 20 }}>
-          {documents.map(doc => (
-            <div key={doc} style={{ padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-              <div style={{ fontFamily: font.mono, fontSize: 10, color: 'var(--text-secondary)', marginBottom: 4 }}>📄 {doc}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ flex: 1, height: 3, background: 'rgba(0,212,255,0.1)', borderRadius: 2, overflow: 'hidden' }}>
-                  <div style={{ width: '100%', height: '100%', background: 'var(--accent-blue)', borderRadius: 2 }} />
-                </div>
-                <span style={{ fontFamily: font.mono, fontSize: 8, color: 'var(--accent-green)' }}>indexed</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Live Activity Chart */}
-        <div style={labelStyle}>LIVE ACTIVITY</div>
-        <div style={{ padding: '0 12px', marginBottom: 20 }}>
-          <div style={{ background: 'rgba(5,10,30,0.6)', borderRadius: 8, padding: 8 }}>
-            <ResponsiveContainer width="100%" height={80}>
-              <AreaChart data={chartData}>
-                <Area type="monotone" dataKey="v" stroke="var(--accent-blue)" fill="rgba(0,212,255,0.15)" strokeWidth={1.5} />
-              </AreaChart>
-            </ResponsiveContainer>
           </div>
-        </div>
 
-        {/* Last Topic */}
-        {lastTopic && (
-          <>
-            <div style={labelStyle}>LAST TOPIC</div>
-            <div style={{ padding: '0 12px' }}>
-              <GlassCard style={{ padding: 12 }}>
-                <div style={{ fontFamily: font.body, fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>{lastTopic}</div>
-              </GlassCard>
-            </div>
-          </>
-        )}
-      </aside>
-    </motion.div>
+          <div style={sidebarLabelStyle}>Quick Questions</div>
+          <div style={{ padding: '0 14px', marginBottom: 28 }}>
+            {questionsMap[activeCategory]?.map((q, i) => (
+              <button key={i} onClick={() => sendMessage(q)}
+                style={{
+                  width: '100%', textAlign: 'left', padding: '10px 14px', marginBottom: 3,
+                  fontFamily: font.body, fontSize: 14, fontWeight: 400, color: '#b8d8f0',
+                  background: 'transparent', borderLeft: '2px solid transparent',
+                  borderRadius: '0 6px 6px 0', transition: 'all 0.2s',
+                  lineHeight: 1.5,
+                }}
+                onMouseEnter={e => { (e.currentTarget).style.background = 'rgba(0,212,255,0.06)'; (e.currentTarget).style.borderLeftColor = '#00d4ff'; (e.currentTarget).style.color = '#ffffff'; }}
+                onMouseLeave={e => { (e.currentTarget).style.background = 'transparent'; (e.currentTarget).style.borderLeftColor = 'transparent'; (e.currentTarget).style.color = '#b8d8f0'; }}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+
+          <div style={sidebarLabelStyle}>ISRO Missions</div>
+          <div style={{ padding: '0 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[['🌕', 'Chandrayaan-3'], ['🔴', 'Mangalyaan'], ['🚀', 'Gaganyaan']].map(([icon, name]) => (
+              <button key={name} onClick={() => sendMessage(`Tell me about ${name}`)}
+                style={{
+                  padding: '10px 16px', fontFamily: font.body, fontSize: 14, fontWeight: 500,
+                  color: '#b8d8f0', background: 'rgba(0,212,255,0.04)',
+                  border: '1px solid rgba(0,212,255,0.12)', borderRadius: 12, textAlign: 'left',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => { (e.currentTarget).style.background = 'rgba(0,212,255,0.1)'; (e.currentTarget).style.borderColor = 'rgba(0,212,255,0.3)'; (e.currentTarget).style.color = '#ffffff'; }}
+                onMouseLeave={e => { (e.currentTarget).style.background = 'rgba(0,212,255,0.04)'; (e.currentTarget).style.borderColor = 'rgba(0,212,255,0.12)'; (e.currentTarget).style.color = '#b8d8f0'; }}
+              >
+                <span style={{ marginRight: 8, fontSize: 16 }}>{icon}</span> {name}
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        {/* ── MAIN CHAT ── */}
+        <main style={{ display: 'flex', flexDirection: 'column', background: 'linear-gradient(180deg, rgba(4,6,22,0.9) 0%, rgba(2,3,15,0.95) 100%)', overflow: 'hidden' }}>
+          {/* Stats bar */}
+          <div style={{
+            height: 46, display: 'flex', alignItems: 'center', gap: 28, padding: '0 24px',
+            borderBottom: '1px solid rgba(0,212,255,0.1)',
+            background: 'rgba(6,10,30,0.5)',
+            fontFamily: font.mono, fontSize: 13, fontWeight: 500, color: '#7a9ab8', flexShrink: 0,
+          }}>
+            <span>📄 Docs: <span style={{ color: '#b8d8f0' }}>5</span></span>
+            <span style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
+            <span>🔍 Queries: <span style={{ color: '#b8d8f0' }}>{queryCount}</span></span>
+            <span style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
+            <span>⚡ Avg: <span style={{ color: '#00d4ff' }}>1.2s</span></span>
+            <span style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
+            <span>✅ Verified: <span style={{ color: '#00ff88' }}>100%</span></span>
+          </div>
+
+          {/* Messages */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
+            {messages.length === 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 20 }}>
+                <div style={{ fontSize: 72, filter: 'drop-shadow(0 0 20px rgba(0,212,255,0.3))' }}>🚀</div>
+                <h3 style={{ fontFamily: font.heading, fontSize: 26, fontWeight: 700, color: '#ffffff', letterSpacing: 0.5 }}>
+                  Ask ASTRO anything about space missions
+                </h3>
+                <p style={{ fontFamily: font.body, fontSize: 17, fontWeight: 400, color: '#b8d8f0', marginTop: -4 }}>
+                  Powered by official ISRO & NASA documents
+                </p>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginTop: 12 }}>
+                  {['Explain rocket launch sequence', 'What is Chandrayaan-3?', 'How do satellites work?', 'What is escape velocity?'].map((q, i) => (
+                    <button key={i} onClick={() => sendMessage(q)}
+                      style={{
+                        fontFamily: font.body, fontSize: 14, fontWeight: 500,
+                        padding: '10px 20px',
+                        background: 'rgba(0,212,255,0.06)',
+                        border: '1px solid rgba(0,212,255,0.18)',
+                        borderRadius: 24, color: '#b8d8f0', transition: 'all 0.25s',
+                      }}
+                      onMouseEnter={e => { (e.currentTarget).style.borderColor = '#00d4ff'; (e.currentTarget).style.background = 'rgba(0,212,255,0.12)'; (e.currentTarget).style.color = '#ffffff'; (e.currentTarget).style.transform = 'translateY(-1px)'; }}
+                      onMouseLeave={e => { (e.currentTarget).style.borderColor = 'rgba(0,212,255,0.18)'; (e.currentTarget).style.background = 'rgba(0,212,255,0.06)'; (e.currentTarget).style.color = '#b8d8f0'; (e.currentTarget).style.transform = 'translateY(0)'; }}
+                    >{q}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <AnimatePresence>
+              {messages.map(msg => (
+                <motion.div key={msg.id} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.35, ease: 'easeOut' }}
+                  style={{ display: 'flex', justifyContent: msg.isBot ? 'flex-start' : 'flex-end', marginBottom: 24, gap: 12, alignItems: 'flex-start' }}
+                >
+                  {msg.isBot && (
+                    <div style={{
+                      width: 38, height: 38, borderRadius: 12, background: 'linear-gradient(135deg, rgba(0,212,255,0.15) 0%, rgba(123,47,255,0.15) 100%)',
+                      border: '1px solid rgba(0,212,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, marginTop: 2,
+                    }}>🚀</div>
+                  )}
+                  <div style={{ maxWidth: msg.isBot ? '72%' : '60%' }}>
+                    <div style={{
+                      background: msg.isBot
+                        ? 'linear-gradient(135deg, rgba(8,14,45,0.95) 0%, rgba(6,10,35,0.95) 100%)'
+                        : 'linear-gradient(135deg, rgba(0,212,255,0.14) 0%, rgba(123,47,255,0.1) 100%)',
+                      border: msg.isBot ? '1px solid rgba(0,212,255,0.1)' : '1px solid rgba(0,212,255,0.25)',
+                      borderLeft: msg.isBot ? '3px solid #00d4ff' : undefined,
+                      borderRadius: msg.isBot ? '2px 16px 16px 16px' : '16px 16px 4px 16px',
+                      padding: '16px 20px',
+                      fontFamily: font.body, fontSize: 16, lineHeight: 1.75, fontWeight: 400,
+                      color: msg.isBot ? '#dce8f2' : '#ffffff', whiteSpace: 'pre-line',
+                      boxShadow: msg.isBot ? '0 2px 12px rgba(0,0,0,0.2)' : '0 2px 12px rgba(0,212,255,0.08)',
+                    }}>
+                      {msg.text}
+                    </div>
+                    {msg.isBot && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 10, flexWrap: 'wrap' }}>
+                        {msg.source && (
+                          <span style={{
+                            fontFamily: font.mono, fontSize: 12, fontWeight: 500, color: '#00d4ff',
+                            background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)',
+                            borderRadius: 16, padding: '5px 14px',
+                          }}>
+                            📄 {msg.source}
+                          </span>
+                        )}
+                        {msg.confidence && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontFamily: font.mono, fontSize: 11, fontWeight: 500, color: '#7a9ab8' }}>Confidence</span>
+                            <div style={{ width: 70, height: 5, background: 'rgba(0,212,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
+                              <div style={{ width: `${msg.confidence}%`, height: '100%', background: 'linear-gradient(90deg, #00d4ff, #00ff88)', borderRadius: 3 }} />
+                            </div>
+                            <span style={{ fontFamily: font.mono, fontSize: 12, fontWeight: 600, color: '#00d4ff' }}>{msg.confidence}%</span>
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button onClick={() => copyText(msg.text)}
+                            style={{ fontFamily: font.mono, fontSize: 12, color: '#7a9ab8', padding: '4px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', transition: 'all 0.2s' }}
+                            onMouseEnter={e => { (e.currentTarget).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget).style.color = '#ffffff'; }}
+                            onMouseLeave={e => { (e.currentTarget).style.background = 'rgba(255,255,255,0.03)'; (e.currentTarget).style.color = '#7a9ab8'; }}
+                          >📋 Copy</button>
+                          <button onClick={() => handleReaction(msg.id, 'likes')}
+                            style={{ fontSize: 14, padding: '4px 8px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', transition: 'all 0.2s' }}
+                            onMouseEnter={e => (e.currentTarget).style.background = 'rgba(255,255,255,0.08)'}
+                            onMouseLeave={e => (e.currentTarget).style.background = 'rgba(255,255,255,0.03)'}
+                          >👍 {msg.likes > 0 ? msg.likes : ''}</button>
+                          <button onClick={() => handleReaction(msg.id, 'dislikes')}
+                            style={{ fontSize: 14, padding: '4px 8px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', transition: 'all 0.2s' }}
+                            onMouseEnter={e => (e.currentTarget).style.background = 'rgba(255,255,255,0.08)'}
+                            onMouseLeave={e => (e.currentTarget).style.background = 'rgba(255,255,255,0.03)'}
+                          >👎 {msg.dislikes > 0 ? msg.dislikes : ''}</button>
+                        </div>
+                      </div>
+                    )}
+                    <div style={{ fontFamily: font.mono, fontSize: 11, fontWeight: 500, color: '#5a7a98', marginTop: 6 }}>MET {msg.time}</div>
+                  </div>
+                  {!msg.isBot && (
+                    <div style={{
+                      width: 38, height: 38, borderRadius: 12, background: 'linear-gradient(135deg, rgba(0,212,255,0.15) 0%, rgba(0,255,136,0.1) 100%)',
+                      border: '1px solid rgba(0,212,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, marginTop: 2,
+                    }}>🧑‍🚀</div>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+
+            {typing && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                <div style={{
+                  width: 38, height: 38, borderRadius: 12, background: 'linear-gradient(135deg, rgba(0,212,255,0.15) 0%, rgba(123,47,255,0.15) 100%)',
+                  border: '1px solid rgba(0,212,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0,
+                }}>🚀</div>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '14px 20px',
+                  background: 'linear-gradient(135deg, rgba(8,14,45,0.95) 0%, rgba(6,10,35,0.95) 100%)',
+                  border: '1px solid rgba(0,212,255,0.1)', borderLeft: '3px solid #00d4ff',
+                  borderRadius: '2px 16px 16px 16px',
+                }}>
+                  {[0, 1, 2].map(i => (
+                    <div key={i} style={{
+                      width: 9, height: 9, borderRadius: '50%', background: '#00d4ff',
+                      animation: `dot-bounce 1.2s ${i * 0.2}s infinite`,
+                    }} />
+                  ))}
+                  <span style={{ fontFamily: font.body, fontSize: 14, fontWeight: 500, color: '#7a9ab8', marginLeft: 6 }}>ASTRO is thinking...</span>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input */}
+          <div style={{
+            padding: '16px 24px',
+            background: 'linear-gradient(180deg, rgba(6,8,25,0.98) 0%, rgba(4,6,20,0.99) 100%)',
+            borderTop: '1px solid rgba(0,212,255,0.12)',
+            display: 'flex', gap: 14, alignItems: 'flex-end', flexShrink: 0,
+          }}>
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask ASTRO about space missions..."
+              rows={1}
+              style={{
+                flex: 1, background: 'rgba(10,16,50,0.8)',
+                border: '1px solid rgba(0,212,255,0.18)',
+                borderRadius: 12, padding: '14px 18px', fontFamily: font.body, fontSize: 16, fontWeight: 400,
+                color: '#ffffff', resize: 'none', outline: 'none', maxHeight: 100,
+                transition: 'border-color 0.2s, box-shadow 0.2s',
+              }}
+              onFocus={e => { e.target.style.borderColor = '#00d4ff'; e.target.style.boxShadow = '0 0 0 3px rgba(0,212,255,0.08)'; }}
+              onBlur={e => { e.target.style.borderColor = 'rgba(0,212,255,0.18)'; e.target.style.boxShadow = 'none'; }}
+            />
+            <GlowButton label="➤" color="blue" size="md" onClick={() => sendMessage(input)} />
+            {messages.length > 0 && (
+              <button onClick={() => { if (confirm('Clear all messages?')) setMessages([]); }}
+                style={{
+                  padding: '12px', color: '#7a9ab8', fontSize: 18, borderRadius: 8,
+                  background: 'rgba(255,255,255,0.03)', transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => { (e.currentTarget).style.background = 'rgba(255,80,80,0.1)'; (e.currentTarget).style.color = '#ff5050'; }}
+                onMouseLeave={e => { (e.currentTarget).style.background = 'rgba(255,255,255,0.03)'; (e.currentTarget).style.color = '#7a9ab8'; }}
+                title="Clear chat"
+              >🗑️</button>
+            )}
+          </div>
+        </main>
+      </motion.div>
+    </>
   );
 };
 

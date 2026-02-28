@@ -1,48 +1,248 @@
-import { motion, useInView } from 'framer-motion';
-import { useRef, useState, useEffect } from 'react';
+import { motion, useInView, useAnimation, AnimatePresence } from 'framer-motion';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GlowButton from '../components/shared/GlowButton';
 import GlassCard from '../components/shared/GlassCard';
+
+// ─── CONTINUOUS FIRE PARTICLES ───
+interface Particle {
+  id: number;
+  x: number;
+  size: number;
+  color: string;
+  duration: number;
+  yTarget: number;
+}
+
+const ContinuousFire = ({ active, intensity = 'normal' }: { active: boolean; intensity?: 'low' | 'normal' | 'high' }) => {
+  const [particles, setParticles] = useState<Particle[]>([]);
+  const idRef = useRef(0);
+
+  const config = {
+    low: { interval: 150, count: 3, spread: 20, maxParticles: 30 },
+    normal: { interval: 80, count: 5, spread: 40, maxParticles: 60 },
+    high: { interval: 50, count: 8, spread: 55, maxParticles: 100 },
+  }[intensity];
+
+  useEffect(() => {
+    if (!active) {
+      setParticles([]);
+      idRef.current = 0;
+      return;
+    }
+
+    const colors = ['#ff6b35', '#ff3366', '#ffaa00', '#ff8800', '#ff4444', '#ffcc00'];
+
+    const spawnBatch = () => {
+      const batch: Particle[] = [];
+      for (let j = 0; j < config.count; j++) {
+        batch.push({
+          id: idRef.current++,
+          x: (Math.random() - 0.5) * config.spread,
+          size: 2 + Math.random() * 5,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          duration: 0.3 + Math.random() * 0.5,
+          yTarget: 30 + Math.random() * 70,
+        });
+      }
+      setParticles(prev => [...prev.slice(-(config.maxParticles - config.count)), ...batch]);
+    };
+
+    spawnBatch();
+    const interval = setInterval(spawnBatch, config.interval);
+    return () => clearInterval(interval);
+  }, [active, intensity]);
+
+  return (
+    <div style={{ position: 'absolute', bottom: 0, left: '50%', width: 0, height: 0, pointerEvents: 'none' }}>
+      {particles.map(p => (
+        <motion.div
+          key={p.id}
+          initial={{ opacity: 0.9, y: 0, x: 0, scale: 1 }}
+          animate={{ opacity: 0, y: p.yTarget, x: p.x, scale: 0.2 }}
+          transition={{ duration: p.duration, ease: 'easeOut' }}
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: -p.size / 2,
+            width: p.size,
+            height: p.size,
+            borderRadius: '50%',
+            background: p.color,
+            boxShadow: `0 0 ${p.size + 2}px ${p.color}`,
+          }}
+        />
+      ))}
+      {/* Central flame glow */}
+      {active && (
+        <motion.div
+          animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.8, 1.1, 0.8] }}
+          transition={{ duration: 0.3, repeat: Infinity }}
+          style={{
+            position: 'absolute',
+            bottom: -4,
+            left: -12,
+            width: 24,
+            height: 30,
+            borderRadius: '50% 50% 40% 40%',
+            background: 'radial-gradient(ellipse, rgba(255,170,0,0.6), rgba(255,68,68,0.3), transparent)',
+            filter: 'blur(3px)',
+          }}
+        />
+      )}
+    </div>
+  );
+};
 
 // ─── HERO SECTION ───
 const HeroSection = () => {
   const navigate = useNavigate();
   const title1 = "UNDERSTAND SPACE.";
   const title2 = "ASK ANYTHING.";
+  const rocketControls = useAnimation();
+  const floatControls = useAnimation();
+  const [launching, setLaunching] = useState(false);
+  const [fireStage, setFireStage] = useState<'off' | 'ignite' | 'full'>('off');
+
+  // Start floating animation
+  useEffect(() => {
+    if (!launching) {
+      floatControls.start({
+        y: [0, -12, 0],
+        transition: { duration: 4, repeat: Infinity, ease: 'easeInOut' },
+      });
+    }
+  }, [launching, floatControls]);
+
+  const handleLaunch = useCallback(async () => {
+    if (launching) return;
+    setLaunching(true);
+
+    // Stop floating
+    floatControls.stop();
+    floatControls.set({ y: 0 });
+
+    // Phase 1: Ignition — fire starts small
+    setFireStage('ignite');
+
+    // Phase 2: Shake + fire builds
+    await rocketControls.start({
+      x: [0, -4, 4, -3, 3, -2, 2, -1, 1, 0],
+      transition: { duration: 0.8 },
+    });
+
+    // Phase 3: Full thrust
+    setFireStage('full');
+    await new Promise(r => setTimeout(r, 300));
+
+    // Phase 4: Launch upward
+    await rocketControls.start({
+      y: -window.innerHeight - 300,
+      transition: { duration: 0.7, ease: [0.4, 0, 0.2, 1] },
+    });
+
+    navigate('/chat');
+  }, [launching, rocketControls, floatControls, navigate]);
 
   return (
-    <section style={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', alignItems: 'center', padding: '0 60px', position: 'relative', zIndex: 2 }}>
+    <section style={{
+      minHeight: '100vh', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      padding: '0 40px', position: 'relative', zIndex: 2, overflow: 'hidden',
+    }}>
       {/* Left orbital ring */}
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <motion.svg width="300" height="300" viewBox="0 0 300 300" animate={{ rotate: 360 }} transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}>
-          <circle cx="150" cy="150" r="140" fill="none" stroke="rgba(0,212,255,0.12)" strokeWidth="1.5" strokeDasharray="8 4" />
-          <circle cx="150" cy="10" r="4" fill="var(--accent-blue)" opacity="0.6" />
+      <div style={{ position: 'absolute', left: 40, top: '50%', transform: 'translateY(-50%)', opacity: 0.7 }}>
+        <motion.svg width="260" height="260" viewBox="0 0 300 300" animate={{ rotate: 360 }} transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}>
+          <circle cx="150" cy="150" r="140" fill="none" stroke="rgba(0,212,255,0.08)" strokeWidth="1" strokeDasharray="6 6" />
+          <circle cx="150" cy="10" r="3" fill="var(--accent-blue)" opacity="0.5" />
         </motion.svg>
       </div>
 
-      {/* Center */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.2 }} style={{ textAlign: 'center' }}>
+      {/* Background rocket — centered behind text */}
+      <motion.div
+        animate={floatControls}
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          marginTop: -190,
+          marginLeft: -90,
+          zIndex: 0,
+          pointerEvents: 'none',
+        }}
+      >
+        <motion.div animate={rocketControls} style={{ position: 'relative' }}>
+          <svg width="180" height="380" viewBox="0 0 180 380" style={{ opacity: 0.10, filter: 'drop-shadow(0 0 20px rgba(0,212,255,0.2))' }}>
+            {/* Rocket body */}
+            <path d="M90 8 L125 100 L125 260 L110 305 L90 320 L70 305 L55 260 L55 100 Z"
+              fill="rgba(0,212,255,0.03)" stroke="var(--accent-blue)" strokeWidth="1.5" />
+            {/* Left fin */}
+            <path d="M55 220 L25 290 L55 265" fill="rgba(255,107,53,0.05)" stroke="var(--accent-orange)" strokeWidth="1.5" />
+            {/* Right fin */}
+            <path d="M125 220 L155 290 L125 265" fill="rgba(255,107,53,0.05)" stroke="var(--accent-orange)" strokeWidth="1.5" />
+            {/* Window */}
+            <circle cx="90" cy="145" r="18" fill="none" stroke="var(--accent-blue)" strokeWidth="1" />
+            <circle cx="90" cy="145" r="10" fill="rgba(0,212,255,0.05)" stroke="var(--accent-blue)" strokeWidth="0.5" />
+            {/* Detail lines */}
+            <line x1="55" y1="175" x2="125" y2="175" stroke="rgba(0,212,255,0.2)" strokeWidth="0.5" />
+            <line x1="55" y1="230" x2="125" y2="230" stroke="rgba(0,212,255,0.2)" strokeWidth="0.5" />
+          </svg>
+
+          {/* Idle exhaust — subtle */}
+          {!launching && [...Array(5)].map((_, i) => (
+            <motion.div key={`idle-${i}`}
+              animate={{ y: [0, 35 + i * 6], opacity: [0.4, 0], scale: [1, 0.3] }}
+              transition={{ duration: 1.2, delay: i * 0.2, repeat: Infinity, ease: 'easeOut' }}
+              style={{
+                position: 'absolute', bottom: 0,
+                left: `calc(50% + ${(i - 2) * 7}px)`,
+                width: 3, height: 3, borderRadius: '50%',
+                background: 'var(--accent-orange)',
+                boxShadow: '0 0 4px var(--accent-orange)',
+              }}
+            />
+          ))}
+
+          {/* Launch fire — continuous particles */}
+          <ContinuousFire
+            active={fireStage !== 'off'}
+            intensity={fireStage === 'full' ? 'high' : 'normal'}
+          />
+        </motion.div>
+      </motion.div>
+
+      {/* Center text content */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.2 }}
+        style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}
+      >
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
           style={{
             display: 'inline-block', fontFamily: "'Share Tech Mono', monospace", fontSize: 10,
-            color: 'var(--accent-blue)', border: '1px solid var(--accent-blue)',
-            background: 'rgba(0,212,255,0.08)', borderRadius: 20, padding: '6px 16px',
-            animation: 'pulse-glow 3s infinite', marginBottom: 32, letterSpacing: 1,
+            color: 'var(--accent-blue)', border: '1px solid rgba(0,212,255,0.25)',
+            background: 'rgba(0,212,255,0.05)', borderRadius: 20, padding: '6px 16px',
+            marginBottom: 28, letterSpacing: 1,
           }}
         >
           🛸 RAG POWERED • GEMINI FLASH • ISRO DOCUMENTS
         </motion.div>
 
         <div>
-          <h1 style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 900, fontSize: 72, lineHeight: 1.1, margin: 0, color: '#fff', textShadow: '0 0 40px rgba(0,212,255,0.5)' }}>
+          <h1 style={{
+            fontFamily: "'Orbitron', sans-serif", fontWeight: 900, fontSize: 68,
+            lineHeight: 1.08, margin: 0, color: '#fff',
+            textShadow: '0 0 30px rgba(0,212,255,0.3)',
+          }}>
             {title1.split('').map((ch, i) => (
               <motion.span key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 + i * 0.04 }}>
                 {ch}
               </motion.span>
             ))}
           </h1>
-          <h1 style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 900, fontSize: 72, lineHeight: 1.1, margin: '8px 0 0', color: 'var(--accent-blue)' }}>
+          <h1 style={{
+            fontFamily: "'Orbitron', sans-serif", fontWeight: 900, fontSize: 68,
+            lineHeight: 1.08, margin: '6px 0 0', color: 'var(--accent-blue)',
+          }}>
             {title2.split('').map((ch, i) => (
               <motion.span key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.0 + i * 0.04 }}>
                 {ch}
@@ -52,52 +252,209 @@ const HeroSection = () => {
         </div>
 
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.8 }}
-          style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 19, color: 'var(--text-secondary)', maxWidth: 520, margin: '24px auto 32px' }}
+          style={{
+            fontFamily: "'Rajdhani', sans-serif", fontSize: 18, color: 'var(--text-secondary)',
+            maxWidth: 500, margin: '20px auto 28px', lineHeight: 1.6,
+          }}
         >
           India's first AI bot trained on official ISRO documents. Ask about Chandrayaan, Gaganyaan, launch sequences, and more.
         </motion.p>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.0 }}
-          style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: 24 }}
+          style={{ display: 'flex', gap: 14, justifyContent: 'center', marginBottom: 20 }}
         >
-          <GlowButton label="🚀 Launch ASTRO" color="blue" size="lg" href="/chat" />
-          <GlowButton label="Watch Demo" color="blue" size="lg" ghost />
+          <button
+            onClick={handleLaunch}
+            style={{
+              fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, fontSize: 16,
+              padding: '14px 32px', color: '#fff', letterSpacing: 0.5,
+              background: 'linear-gradient(135deg, rgba(0,180,220,0.2), rgba(0,130,200,0.15))',
+              border: '1px solid rgba(0,212,255,0.4)',
+              borderRadius: 10, cursor: 'pointer',
+              transition: 'all 0.25s ease',
+              boxShadow: '0 0 12px rgba(0,212,255,0.15)',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,180,220,0.35), rgba(0,130,200,0.25))';
+              e.currentTarget.style.boxShadow = '0 0 20px rgba(0,212,255,0.25)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,180,220,0.2), rgba(0,130,200,0.15))';
+              e.currentTarget.style.boxShadow = '0 0 12px rgba(0,212,255,0.15)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            🚀 Launch ASTRO
+          </button>
+          <button
+            style={{
+              fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, fontSize: 16,
+              padding: '14px 32px', color: 'rgba(255,255,255,0.7)',
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 10, cursor: 'pointer',
+              transition: 'all 0.25s ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
+              e.currentTarget.style.color = '#fff';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+              e.currentTarget.style.color = 'rgba(255,255,255,0.7)';
+            }}
+          >
+            Watch Demo
+          </button>
         </motion.div>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.3 }}
-          style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: 'var(--accent-green)' }}
+          style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: 'var(--accent-green)', opacity: 0.8 }}
         >
           SYSTEM READY • ALL DOCUMENTS INDEXED • AWAITING QUERY<span style={{ animation: 'blink 1s infinite' }}>_</span>
         </motion.div>
       </motion.div>
 
-      {/* Right rocket */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <motion.svg width="80" height="180" viewBox="0 0 80 180" animate={{ y: [0, -20, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
-          <path d="M40 10 L55 60 L55 120 L48 140 L40 150 L32 140 L25 120 L25 60 Z" fill="none" stroke="var(--accent-blue)" strokeWidth="1.5" />
-          <path d="M25 100 L15 130 L25 120" fill="none" stroke="var(--accent-orange)" strokeWidth="1.5" />
-          <path d="M55 100 L65 130 L55 120" fill="none" stroke="var(--accent-orange)" strokeWidth="1.5" />
-          <circle cx="40" cy="70" r="8" fill="none" stroke="var(--accent-blue)" strokeWidth="1" />
-        </motion.svg>
-        {[...Array(6)].map((_, i) => (
-          <motion.div key={i}
-            animate={{ y: [0, 40], opacity: [0.8, 0] }}
-            transition={{ duration: 1, delay: i * 0.15, repeat: Infinity }}
-            style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent-orange)', position: 'absolute', bottom: '35%', left: `calc(50% + ${(i - 2.5) * 6}px)` }}
-          />
-        ))}
-      </div>
-
       {/* Scroll indicator */}
-      <motion.div animate={{ y: [0, 8, 0] }} transition={{ duration: 2, repeat: Infinity }}
-        style={{ position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)', textAlign: 'center' }}
+      <motion.div animate={{ y: [0, 6, 0] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+        style={{
+          position: 'absolute', bottom: 36, left: 0, right: 0,
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          zIndex: 1,
+        }}
       >
-        <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: 'var(--text-dim)', letterSpacing: 2 }}>SCROLL TO EXPLORE MISSION</div>
-        <svg width="20" height="20" viewBox="0 0 20 20" style={{ marginTop: 8 }}>
+        <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: 'var(--text-dim)', letterSpacing: 2, opacity: 0.6 }}>
+          SCROLL TO EXPLORE MISSION
+        </div>
+        <svg width="16" height="16" viewBox="0 0 20 20" style={{ marginTop: 6, opacity: 0.5 }}>
           <path d="M5 8 L10 14 L15 8" fill="none" stroke="var(--text-dim)" strokeWidth="1.5" />
         </svg>
       </motion.div>
     </section>
+  );
+};
+
+// ─── SCROLL-TO-TOP ROCKET BUTTON ───
+const ScrollToTopRocket = () => {
+  const [visible, setVisible] = useState(false);
+  const [firing, setFiring] = useState(false);
+  const rocketBtnControls = useAnimation();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setVisible(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleClick = async () => {
+    if (firing) return;
+    setFiring(true);
+
+    // Shake
+    await rocketBtnControls.start({
+      x: [0, -2, 2, -1, 1, 0],
+      transition: { duration: 0.25 },
+    });
+
+    // Launch up
+    rocketBtnControls.start({
+      y: -window.innerHeight,
+      transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
+    });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Reset after animation
+    setTimeout(() => {
+      rocketBtnControls.set({ y: 60 });
+      setTimeout(() => {
+        rocketBtnControls.start({ y: 0, transition: { duration: 0.35, ease: 'easeOut' } });
+        setFiring(false);
+      }, 500);
+    }, 600);
+  };
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.25 }}
+          style={{
+            position: 'fixed',
+            bottom: 28,
+            right: 28,
+            zIndex: 999,
+          }}
+        >
+          <motion.button
+            animate={rocketBtnControls}
+            onClick={handleClick}
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 12,
+              border: '1px solid rgba(0,212,255,0.25)',
+              background: 'rgba(5,10,30,0.85)',
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              position: 'relative',
+              overflow: 'visible',
+              transition: 'border-color 0.2s, box-shadow 0.2s',
+            }}
+            onMouseEnter={e => {
+              if (!firing) {
+                e.currentTarget.style.borderColor = 'rgba(0,212,255,0.5)';
+                e.currentTarget.style.boxShadow = '0 2px 16px rgba(0,212,255,0.15)';
+              }
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'rgba(0,212,255,0.25)';
+              e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.4)';
+            }}
+          >
+            {/* Rocket icon */}
+            <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+              <path d="M14 3 L18 10 L18 19 L16 22 L14 24 L12 22 L10 19 L10 10 Z"
+                stroke="var(--accent-blue)" strokeWidth="1.5" fill="rgba(0,212,255,0.08)" />
+              <path d="M10 16 L7 21 L10 19" stroke="var(--accent-orange)" strokeWidth="1.2" fill="none" />
+              <path d="M18 16 L21 21 L18 19" stroke="var(--accent-orange)" strokeWidth="1.2" fill="none" />
+              <circle cx="14" cy="12" r="2" stroke="var(--accent-blue)" strokeWidth="0.8" fill="rgba(0,212,255,0.1)" />
+            </svg>
+
+            {/* Fire when launching */}
+            {firing && (
+              <div style={{ position: 'absolute', bottom: -6, left: '50%' }}>
+                <ContinuousFire active={true} intensity="low" />
+              </div>
+            )}
+          </motion.button>
+
+          {/* Label */}
+          {!firing && (
+            <div style={{
+              fontFamily: "'Share Tech Mono', monospace",
+              fontSize: 8,
+              color: 'rgba(0,212,255,0.5)',
+              textAlign: 'center',
+              marginTop: 4,
+              letterSpacing: 1,
+            }}>
+              TOP
+            </div>
+          )}
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 
@@ -122,32 +479,6 @@ const SectionTitle = ({ text }: { text: string }) => (
   <h2 style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 700, fontSize: 40, textAlign: 'center', marginBottom: 48, color: 'var(--text-primary)' }}>{text}</h2>
 );
 
-// ─── PROBLEM SECTION ───
-const ProblemSection = () => {
-  const problems = [
-    { title: 'Information Overload', desc: 'Students drown in scattered, unstructured space mission data across hundreds of PDFs and websites.' },
-    { title: 'No Verified Source', desc: 'ChatGPT and Google give generic answers with no source verification or document citations.' },
-    { title: 'Complex Jargon', desc: 'Technical mission documents are nearly impossible for students and enthusiasts to understand.' },
-  ];
-
-  return (
-    <AnimatedSection style={{ background: 'linear-gradient(180deg, #00000f 0%, #0a0515 100%)' }}>
-      <SectionLabel text="THE PROBLEM" />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, maxWidth: 1100, margin: '0 auto' }}>
-        {problems.map((p, i) => (
-          <motion.div key={i} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.2 }} viewport={{ once: true }}>
-            <GlassCard accentColor="var(--accent-red)">
-              <div style={{ fontSize: 40, marginBottom: 16 }}>❌</div>
-              <h3 style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 18, marginBottom: 12, color: 'var(--text-primary)' }}>{p.title}</h3>
-              <p style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{p.desc}</p>
-            </GlassCard>
-          </motion.div>
-        ))}
-      </div>
-      <div style={{ height: 4, maxWidth: 800, margin: '60px auto 0', background: 'linear-gradient(90deg, #ff3366, #ff6b35, #00d4ff)', borderRadius: 2 }} />
-    </AnimatedSection>
-  );
-};
 
 // ─── SOLUTION SECTION ───
 const SolutionSection = () => (
@@ -438,45 +769,6 @@ const TeamSection = () => {
   );
 };
 
-// ─── CTA SECTION ───
-const CTASection = () => {
-  const navigate = useNavigate();
-  const [flash, setFlash] = useState(false);
-
-  const handleLaunch = () => {
-    setFlash(true);
-    setTimeout(() => navigate('/chat'), 500);
-  };
-
-  return (
-    <section style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2, textAlign: 'center' }}>
-      <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: 'var(--accent-orange)', animation: 'blink 1.5s infinite', marginBottom: 24, letterSpacing: 4 }}>
-        READY FOR LAUNCH
-      </div>
-      <h2 style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 700, fontSize: 48, marginBottom: 20, maxWidth: 700 }}>
-        Start Your Space Education Mission
-      </h2>
-      <p style={{ fontSize: 19, color: 'var(--text-secondary)', marginBottom: 40, maxWidth: 500 }}>
-        Explore the cosmos through verified knowledge from official space agency documents.
-      </p>
-      <button onClick={handleLaunch} style={{
-        fontFamily: "'Orbitron', sans-serif", fontSize: 20, padding: '22px 64px',
-        background: 'linear-gradient(135deg, var(--accent-blue), #0099cc)',
-        border: 'none', borderRadius: 12, color: '#fff', fontWeight: 700,
-        animation: 'pulse-ring 2s infinite', letterSpacing: 1,
-        transition: 'transform 0.2s',
-      }}>
-        🚀 LAUNCH ASTRO
-      </button>
-      {flash && (
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: [0, 1, 0] }} transition={{ duration: 0.5 }}
-          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: '#fff', zIndex: 100 }}
-        />
-      )}
-    </section>
-  );
-};
 
 // ─── FOOTER ───
 const Footer = () => (
@@ -491,7 +783,6 @@ const Footer = () => (
 const LandingPage = () => (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}>
     <HeroSection />
-    <ProblemSection />
     <SolutionSection />
     <FeaturesSection />
     <MissionsSection />
@@ -499,8 +790,8 @@ const LandingPage = () => (
     <StatsSection />
     <ArchitectureSection />
     <TeamSection />
-    <CTASection />
     <Footer />
+    <ScrollToTopRocket />
   </motion.div>
 );
 
